@@ -144,6 +144,8 @@ public final class Bootstrap {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader = this.getClass().getClassLoader();
             }
+            //初始化其它两个类加载器
+            // 根据配置创建SharedClassLoader、CatalinaClassLoader
             catalinaLoader = createClassLoader("server", commonLoader);
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
@@ -155,8 +157,9 @@ public final class Bootstrap {
 
 
     private ClassLoader createClassLoader(String name, ClassLoader parent) throws Exception {
-
+        // 读取catalina.properties文件中的配置
         String value = CatalinaProperties.getProperty(name + ".loader");
+        // 没有对应的配置，不会创建此类加载器，而是返回传入的父类加载器，也就是CommonClassLoader
         if ((value == null) || (value.equals(""))) {
             return parent;
         }

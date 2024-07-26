@@ -794,6 +794,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                     PrivilegedAction<Class<?>> dp = new PrivilegedFindClassByName(name);
                     clazz = AccessController.doPrivileged(dp);
                 } else {
+                    // 1、先在应用本地目录下查找类
                     clazz = findClassInternal(name);
                 }
             } catch (AccessControlException ace) {
@@ -807,6 +808,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             }
             if (clazz == null && hasExternalRepositories) {
                 try {
+                    // 2、如果在本地目录没有找到，委派父加载器去查找
                     clazz = super.findClass(name);
                 } catch (AccessControlException ace) {
                     log.warn(sm.getString("webappClassLoader.securityException", name, ace.getMessage()), ace);
@@ -818,6 +820,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                     throw e;
                 }
             }
+            // 3、如果父加载器也没找到，抛出异常
             if (clazz == null) {
                 if (log.isTraceEnabled()) {
                     log.trace("    --> Returning ClassNotFoundException");
@@ -1151,7 +1154,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
 
             // Log access to stopped class loader
             checkStateForClassLoading(name);
-
+            //从当前ClassLoader的本地缓存中加载类，如果找到则返回
             // (0) Check our previously loaded local class cache
             clazz = findLoadedClass0(name);
             if (clazz != null) {
@@ -1163,7 +1166,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                 }
                 return clazz;
             }
-
+            // 本地缓存没有的情况下，调用ClassLoader的findLoadedClass方法查看jvm是否已经加载过此类，如果已经加载则直接返回。
             // (0.1) Check our previously loaded class cache
             clazz = JreCompat.isGraalAvailable() ? null : findLoadedClass(name);
             if (clazz != null) {
@@ -1181,7 +1184,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
              * SE classes. This implements SRV.10.7.2
              */
             String resourceName = binaryNameToPath(name, false);
-
+            //此时的javaseClassLoader是扩展类加载器  是把扩展类加载器赋值给了javaseClassLoader
             ClassLoader javaseLoader = getJavaseClassLoader();
             boolean tryLoadingFromJavaseLoader;
             try {
@@ -1212,9 +1215,10 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                 // ClassNotFoundException.
                 tryLoadingFromJavaseLoader = true;
             }
-
+            // 如果能用扩展类加载器的getResource得到就证明可以被扩展类加载器加载到接下来安排扩展类加载器加载
             if (tryLoadingFromJavaseLoader) {
                 try {
+                    //使用扩展类加载器进行加载
                     clazz = javaseLoader.loadClass(name);
                     if (clazz != null) {
                         if (resolve) {
@@ -1244,6 +1248,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             boolean delegateLoad = delegate || filter(name, true);
 
             // (1) Delegate to our parent if requested
+            // 如果是true就是用父类加载器进行加载
             if (delegateLoad) {
                 if (log.isTraceEnabled()) {
                     log.trace("  Delegating to parent classloader1 " + parent);
@@ -1269,6 +1274,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                 log.trace("  Searching local repositories");
             }
             try {
+                // 本地进行加载
                 clazz = findClass(name);
                 if (clazz != null) {
                     if (log.isTraceEnabled()) {
@@ -1284,6 +1290,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
             }
 
             // (3) Delegate to parent unconditionally
+            // 到这里还是没有加载上再次尝试使用父类加载器进行加载
             if (!delegateLoad) {
                 if (log.isTraceEnabled()) {
                     log.trace("  Delegating to parent classloader at end: " + parent);
