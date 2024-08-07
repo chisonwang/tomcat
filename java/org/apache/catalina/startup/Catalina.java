@@ -653,6 +653,8 @@ public class Catalina {
     /**
      * Start a new server instance.
      */
+    // load方法解析server.xml配置文件，并加载Server、Service、Connector、Container、Engine、Host、Context、Wrapper一系列的容器。
+    // 加载完成后，调用getServer().start()来开启一个新的Server。
     public void load() {
 
         if (loaded) {

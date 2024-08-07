@@ -144,7 +144,7 @@ public final class Bootstrap {
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader = this.getClass().getClassLoader();
             }
-            //初始化其它两个类加载器
+            // 初始化其它两个类加载器
             // 根据配置创建SharedClassLoader、CatalinaClassLoader
             catalinaLoader = createClassLoader("server", commonLoader);
             sharedLoader = createClassLoader("shared", commonLoader);
@@ -343,7 +343,7 @@ public final class Bootstrap {
         if (catalinaDaemon == null) {
             init();
         }
-
+        // 反射起 Catalina的start方法
         Method method = catalinaDaemon.getClass().getMethod("start", (Class[]) null);
         method.invoke(catalinaDaemon, (Object[]) null);
     }
@@ -435,6 +435,7 @@ public final class Bootstrap {
      *
      * @param args Command line arguments to be processed
      */
+    // tomcat 启动入口
     public static void main(String args[]) {
 
         synchronized (daemonLock) {
@@ -442,6 +443,7 @@ public final class Bootstrap {
                 // Don't set daemon until init() has completed
                 Bootstrap bootstrap = new Bootstrap();
                 try {
+                    // 加载 Catalina
                     bootstrap.init();
                 } catch (Throwable t) {
                     handleThrowable(t);
@@ -472,7 +474,9 @@ public final class Bootstrap {
                 daemon.stop();
             } else if (command.equals("start")) {
                 daemon.setAwait(true);
+                // catalina.load
                 daemon.load(args);
+                // catalina.start
                 daemon.start();
                 if (null == daemon.getServer()) {
                     System.exit(1);
